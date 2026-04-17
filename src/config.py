@@ -19,18 +19,26 @@ class Config:
 
 
 def load_config(path: Path = Path("config/settings.toml")) -> Config:
-    with open(path, "rb") as f:
-        raw = tomllib.load(f)
-    return Config(
-        tushare_token=raw["tushare"]["token"],
-        data_dir=Path(raw["paths"]["data_dir"]),
-        db_path=Path(raw["paths"]["db_path"]),
-        log_path=Path(raw["paths"]["log_path"]),
-        basic_refresh_days=raw["basic"]["refresh_days"],
-        scheduler_daily_kline_hour=raw["scheduler"]["daily_kline_hour"],
-        scheduler_daily_kline_minute=raw["scheduler"]["daily_kline_minute"],
-        scheduler_basic_day_of_week=raw["scheduler"]["basic_day_of_week"],
-        scheduler_basic_hour=raw["scheduler"]["basic_hour"],
-        wecom_webhook_url=raw["notifier"]["wecom_webhook_url"],
-        notifier_enabled=raw["notifier"]["enabled"],
-    )
+    if not path.exists():
+        raise FileNotFoundError(f"配置文件不存在: {path}")
+    try:
+        with open(path, "rb") as f:
+            raw = tomllib.load(f)
+    except tomllib.TOMLDecodeError as e:
+        raise ValueError(f"配置文件格式错误: {e}") from e
+    try:
+        return Config(
+            tushare_token=raw["tushare"]["token"],
+            data_dir=Path(raw["paths"]["data_dir"]),
+            db_path=Path(raw["paths"]["db_path"]),
+            log_path=Path(raw["paths"]["log_path"]),
+            basic_refresh_days=raw["basic"]["refresh_days"],
+            scheduler_daily_kline_hour=raw["scheduler"]["daily_kline_hour"],
+            scheduler_daily_kline_minute=raw["scheduler"]["daily_kline_minute"],
+            scheduler_basic_day_of_week=raw["scheduler"]["basic_day_of_week"],
+            scheduler_basic_hour=raw["scheduler"]["basic_hour"],
+            wecom_webhook_url=raw["notifier"]["wecom_webhook_url"],
+            notifier_enabled=raw["notifier"]["enabled"],
+        )
+    except KeyError as e:
+        raise KeyError(f"配置文件缺少必要字段: {e}") from e
