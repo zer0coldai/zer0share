@@ -1,4 +1,5 @@
 from datetime import date, timedelta
+
 from loguru import logger
 
 from src.config import Config
@@ -6,8 +7,8 @@ from src.fetcher import TushareFetcher
 from src.notifier import Notifier
 from src.storage import MetaStore, write_basic, write_daily_kline, write_trade_cal
 
-FIRST_DATE = date(2010, 1, 4)
 
+FIRST_DATE = date(2010, 1, 4)
 EXCHANGES = ["SSE", "SZSE", "CFFEX", "SHFE", "CZCE", "DCE", "INE"]
 
 
@@ -19,11 +20,7 @@ class Pipeline:
         self._meta = MetaStore(cfg.db_path)
 
     def sync_basic(self) -> None:
-        last = self._meta.get_last_date("basic")
         today = date.today()
-        if last and (today - last).days < self._cfg.basic_refresh_days:
-            logger.info(f"basic 距上次更新 {(today - last).days} 天，跳过")
-            return
         try:
             df = self._fetcher.fetch_basic()
             write_basic(self._cfg.data_dir, df)
@@ -60,7 +57,7 @@ class Pipeline:
         trading_days = self._meta.get_trading_days("SSE", start, today)
         if not trading_days and self._meta.get_last_date("trade_cal") is None:
             raise RuntimeError(
-                "DuckDB 中无 SSE trade_cal 数据，请先运行: "
+                "DuckDB 中无 SSE trade_cal 数据，请先运行 "
                 "python main.py sync --table trade_cal"
             )
 

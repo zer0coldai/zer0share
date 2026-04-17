@@ -37,7 +37,6 @@ def cfg(tmp_path):
     c = MagicMock()
     c.data_dir = tmp_path
     c.db_path = tmp_path / "meta.duckdb"
-    c.basic_refresh_days = 7
     return c
 
 
@@ -54,12 +53,12 @@ def test_sync_basic_first_run_writes_parquet(pipeline, cfg):
     assert (cfg.data_dir / "basic" / "data.parquet").exists()
 
 
-def test_sync_basic_skips_if_recently_updated(pipeline):
+def test_sync_basic_refreshes_even_if_recently_updated(pipeline):
     pipeline._fetcher.fetch_basic.return_value = _basic_df()
     pipeline.sync_basic()
     pipeline._fetcher.fetch_basic.reset_mock()
     pipeline.sync_basic()
-    pipeline._fetcher.fetch_basic.assert_not_called()
+    pipeline._fetcher.fetch_basic.assert_called_once()
 
 
 def _setup_trade_cal_sse(pipeline, cfg) -> None:
