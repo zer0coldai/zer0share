@@ -1,0 +1,20 @@
+[tushare]
+token = "your_tushare_token_here"
+
+[paths]
+data_dir = "data"
+db_path = "db/meta.duckdb"
+log_path = "logs/pipeline.log"
+
+[basic]
+refresh_days = 7
+
+[scheduler]
+daily_kline_hour = 18
+daily_kline_minute = 0
+basic_day_of_week = "mon"
+basic_hour = 8
+
+[notifier]
+wecom_webhook_url = "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=YOUR_KEY"
+enabled = true

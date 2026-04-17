@@ -1,0 +1,21 @@
+# Virtual environment
+.venv/
+
+# Build artifacts
+dist/
+*.egg-info/
+
+# Config with real secrets
+config/settings.toml
+
+# Data directories
+data/
+db/
+logs/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# uv lock artifacts (keep uv.lock for reproducibility)
