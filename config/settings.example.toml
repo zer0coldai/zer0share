@@ -17,4 +17,4 @@ basic_hour = 8
 
 [notifier]
 wecom_webhook_url = "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=YOUR_KEY"
-enabled = true
+enabled = false  # 填写真实 webhook_url 后改为 true
