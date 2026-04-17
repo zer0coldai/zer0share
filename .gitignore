@@ -18,4 +18,7 @@ __pycache__/
 *.py[cod]
 *.pyo
 
+# Test cache
+.pytest_cache/
+
 # uv lock artifacts (keep uv.lock for reproducibility)
