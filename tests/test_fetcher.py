@@ -132,3 +132,38 @@ def test_fetch_daily_kline_returns_empty_when_none(mock_pro):
     fetcher = TushareFetcher("fake_token")
     df = fetcher.fetch_daily_kline(date(2024, 1, 1))
     assert df.empty
+
+
+def test_fetch_trade_cal_returns_correct_columns(mock_pro):
+    mock_pro.trade_cal.return_value = pd.DataFrame({
+        "exchange": ["SSE", "SSE"],
+        "cal_date": ["20240102", "20240103"],
+        "is_open": ["1", "0"],
+        "pretrade_date": ["20231229", "20240102"],
+    })
+    fetcher = TushareFetcher("fake_token")
+    df = fetcher.fetch_trade_cal("SSE")
+    assert list(df.columns) == ["exchange", "cal_date", "is_open", "pretrade_date"]
+    assert len(df) == 2
+
+
+def test_fetch_trade_cal_converts_types(mock_pro):
+    mock_pro.trade_cal.return_value = pd.DataFrame({
+        "exchange": ["SSE", "SSE"],
+        "cal_date": ["20240102", "20240103"],
+        "is_open": ["1", "0"],
+        "pretrade_date": ["20231229", "20240102"],
+    })
+    fetcher = TushareFetcher("fake_token")
+    df = fetcher.fetch_trade_cal("SSE")
+    assert df.iloc[0]["cal_date"] == date(2024, 1, 2)
+    assert df.iloc[0]["is_open"] is True
+    assert df.iloc[1]["is_open"] is False
+    assert df.iloc[0]["pretrade_date"] == date(2023, 12, 29)
+
+
+def test_fetch_trade_cal_returns_empty_when_none(mock_pro):
+    mock_pro.trade_cal.return_value = None
+    fetcher = TushareFetcher("fake_token")
+    df = fetcher.fetch_trade_cal("SSE")
+    assert df.empty

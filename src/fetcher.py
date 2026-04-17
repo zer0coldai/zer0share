@@ -27,6 +27,7 @@ DAILY_COLS = [
     "ts_code", "trade_date", "open", "high", "low",
     "close", "pre_close", "change", "pct_chg", "vol", "amount"
 ]
+TRADE_CAL_COLS = ["exchange", "cal_date", "is_open", "pretrade_date"]
 
 
 class TushareFetcher:
@@ -58,3 +59,23 @@ class TushareFetcher:
             df["trade_date"], format="%Y%m%d"
         ).dt.date
         return df[DAILY_COLS]
+
+    def fetch_trade_cal(self, exchange: str) -> pd.DataFrame:
+        today = date.today().strftime("%Y%m%d")
+        logger.info(f"拉取交易日历: {exchange}")
+        df = self._pro.trade_cal(
+            exchange=exchange,
+            start_date="19900101",
+            end_date=today,
+            fields=",".join(TRADE_CAL_COLS),
+        )
+        if df is None or df.empty:
+            return pd.DataFrame(columns=TRADE_CAL_COLS)
+        df["cal_date"] = pd.to_datetime(
+            df["cal_date"], format="%Y%m%d", errors="coerce"
+        ).dt.date
+        df["pretrade_date"] = pd.to_datetime(
+            df["pretrade_date"], format="%Y%m%d", errors="coerce"
+        ).apply(lambda x: x.date() if not pd.isnull(x) else None)
+        df["is_open"] = df["is_open"].astype(str).map({"1": True, "0": False}).astype(object)
+        return df[TRADE_CAL_COLS]
