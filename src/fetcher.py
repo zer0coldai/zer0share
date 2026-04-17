@@ -5,8 +5,23 @@ from loguru import logger
 
 
 BASIC_COLS = [
-    "ts_code", "symbol", "name", "area", "industry",
-    "market", "list_status", "list_date", "delist_date"
+    "ts_code",
+    "symbol",
+    "name",
+    "area",
+    "industry",
+    "fullname",
+    "enname",
+    "cnspell",
+    "market",
+    "exchange",
+    "curr_type",
+    "list_status",
+    "list_date",
+    "delist_date",
+    "is_hs",
+    "act_name",
+    "act_ent_type",
 ]
 DAILY_COLS = [
     "ts_code", "trade_date", "open", "high", "low",
@@ -22,7 +37,7 @@ class TushareFetcher:
         logger.info("拉取 stock_basic")
         df = self._pro.stock_basic(
             exchange="",
-            list_status="L,D,P",
+            list_status="L,D,P,G",
             fields=",".join(BASIC_COLS)
         )
         df["list_date"] = pd.to_datetime(
