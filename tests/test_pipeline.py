@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
-from src.pipeline import Pipeline
+from src.pipeline import Pipeline, EXCHANGES
 from src.storage import write_basic, write_trade_cal
 
 
@@ -190,7 +190,7 @@ def test_pipeline_context_manager(cfg):
         assert p is not None
 
 
-EXCHANGES = ["SSE", "SZSE", "CFFEX", "SHFE", "CZCE", "DCE", "INE"]
+
 
 
 def _trade_cal_df(exchange: str) -> pd.DataFrame:
