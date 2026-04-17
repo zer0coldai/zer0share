@@ -1,4 +1,7 @@
 import duckdb
+import pandas as pd
+import pyarrow as pa
+import pyarrow.parquet as pq
 from datetime import date, datetime, timezone
 from pathlib import Path
 
@@ -45,12 +48,7 @@ class MetaStore:
         self._conn.close()
 
 
-import pandas as pd
-import pyarrow as pa
-import pyarrow.parquet as pq
-
-
-def write_daily_kline(data_dir: Path, trade_date: date, df: pd.DataFrame):
+def write_daily_kline(data_dir: Path, trade_date: date, df: pd.DataFrame) -> None:
     partition_dir = data_dir / "daily_kline" / f"date={trade_date.strftime('%Y%m%d')}"
     partition_dir.mkdir(parents=True, exist_ok=True)
     table = pa.Table.from_pandas(df, preserve_index=False)
@@ -59,10 +57,12 @@ def write_daily_kline(data_dir: Path, trade_date: date, df: pd.DataFrame):
 
 def read_daily_kline(data_dir: Path, trade_date: date) -> pd.DataFrame:
     path = data_dir / "daily_kline" / f"date={trade_date.strftime('%Y%m%d')}" / "data.parquet"
+    if not path.exists():
+        return pd.DataFrame()
     return pq.read_table(path).to_pandas()
 
 
-def write_basic(data_dir: Path, df: pd.DataFrame):
+def write_basic(data_dir: Path, df: pd.DataFrame) -> None:
     basic_dir = data_dir / "basic"
     basic_dir.mkdir(parents=True, exist_ok=True)
     table = pa.Table.from_pandas(df, preserve_index=False)
@@ -71,4 +71,6 @@ def write_basic(data_dir: Path, df: pd.DataFrame):
 
 def read_basic(data_dir: Path) -> pd.DataFrame:
     path = data_dir / "basic" / "data.parquet"
+    if not path.exists():
+        return pd.DataFrame()
     return pq.read_table(path).to_pandas()

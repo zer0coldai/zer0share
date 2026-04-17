@@ -1,7 +1,8 @@
 import pytest
+import pandas as pd
 from pathlib import Path
 from datetime import date
-from src.storage import MetaStore
+from src.storage import MetaStore, write_daily_kline, read_daily_kline, write_basic, read_basic
 
 
 @pytest.fixture
@@ -37,10 +38,6 @@ def test_context_manager(tmp_path):
     with MetaStore(tmp_path / "meta.duckdb") as store:
         store.update_last_date("daily_kline", date(2024, 1, 1))
         assert store.get_last_date("daily_kline") == date(2024, 1, 1)
-
-
-import pandas as pd
-from src.storage import write_daily_kline, read_daily_kline, write_basic, read_basic
 
 
 def test_write_and_read_daily_kline(tmp_path):
@@ -111,3 +108,13 @@ def test_basic_overwrites_on_second_write(tmp_path):
     write_basic(tmp_path, df2)
     result = read_basic(tmp_path)
     assert len(result) == 2
+
+
+def test_read_daily_kline_returns_empty_if_not_exists(tmp_path):
+    result = read_daily_kline(tmp_path, date(2024, 1, 2))
+    assert result.empty
+
+
+def test_read_basic_returns_empty_if_not_exists(tmp_path):
+    result = read_basic(tmp_path)
+    assert result.empty
