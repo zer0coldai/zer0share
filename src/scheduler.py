@@ -1,3 +1,4 @@
+from pathlib import Path
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
 from loguru import logger
@@ -7,37 +8,45 @@ from src.fetcher import TushareFetcher
 from src.notifier import Notifier
 from src.pipeline import Pipeline
 
+_logger_initialized = False
+
+
+def _init_logger(log_path: Path) -> None:
+    global _logger_initialized
+    if not _logger_initialized:
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        logger.add(log_path, rotation="10 MB", retention="30 days")
+        _logger_initialized = True
+
 
 def start_scheduler(config_path: str = "config/settings.toml") -> None:
-    from pathlib import Path
     cfg = load_config(Path(config_path))
-    cfg.log_path.parent.mkdir(parents=True, exist_ok=True)
-    logger.add(cfg.log_path, rotation="10 MB", retention="30 days")
+    _init_logger(cfg.log_path)
 
     fetcher = TushareFetcher(cfg.tushare_token)
     notifier = Notifier(cfg.wecom_webhook_url, cfg.notifier_enabled)
-    pipeline = Pipeline(cfg, fetcher, notifier)
 
-    scheduler = BlockingScheduler()
-    scheduler.add_job(
-        pipeline.sync_daily_kline,
-        CronTrigger(
-            hour=cfg.scheduler_daily_kline_hour,
-            minute=cfg.scheduler_daily_kline_minute
-        ),
-        id="daily_kline",
-    )
-    scheduler.add_job(
-        pipeline.sync_basic,
-        CronTrigger(
-            day_of_week=cfg.scheduler_basic_day_of_week,
-            hour=cfg.scheduler_basic_hour
-        ),
-        id="basic",
-    )
-    logger.info(
-        f"调度器启动: daily_kline 每天 "
-        f"{cfg.scheduler_daily_kline_hour}:{cfg.scheduler_daily_kline_minute:02d}, "
-        f"basic 每周{cfg.scheduler_basic_day_of_week} {cfg.scheduler_basic_hour}:00"
-    )
-    scheduler.start()
+    with Pipeline(cfg, fetcher, notifier) as pipeline:
+        scheduler = BlockingScheduler()
+        scheduler.add_job(
+            pipeline.sync_daily_kline,
+            CronTrigger(
+                hour=cfg.scheduler_daily_kline_hour,
+                minute=cfg.scheduler_daily_kline_minute,
+            ),
+            id="daily_kline",
+        )
+        scheduler.add_job(
+            pipeline.sync_basic,
+            CronTrigger(
+                day_of_week=cfg.scheduler_basic_day_of_week,
+                hour=cfg.scheduler_basic_hour,
+            ),
+            id="basic",
+        )
+        logger.info(
+            f"调度器启动: daily_kline 每天 "
+            f"{cfg.scheduler_daily_kline_hour}:{cfg.scheduler_daily_kline_minute:02d}, "
+            f"basic 每周{cfg.scheduler_basic_day_of_week} {cfg.scheduler_basic_hour}:00"
+        )
+        scheduler.start()
