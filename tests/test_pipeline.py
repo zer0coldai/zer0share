@@ -105,3 +105,35 @@ def test_sync_daily_kline_already_up_to_date(pipeline, cfg):
     pipeline._meta.update_last_date("daily_kline", today)
     pipeline.sync_daily_kline()
     pipeline._fetcher.fetch_daily_kline.assert_not_called()
+
+
+def test_sync_basic_failure_sends_alert_and_raises(pipeline, cfg):
+    pipeline._fetcher.fetch_basic.side_effect = RuntimeError("API error")
+    with pytest.raises(RuntimeError):
+        pipeline.sync_basic()
+    pipeline._notifier.send.assert_called_once()
+    msg = pipeline._notifier.send.call_args[0][0]
+    assert "basic 同步失败" in msg
+
+
+def test_sync_daily_kline_failure_sends_alert_and_raises(pipeline, cfg):
+    write_basic(cfg.data_dir, _basic_df())
+    pipeline._fetcher.fetch_daily_kline.side_effect = RuntimeError("API error")
+    pipeline._meta.update_last_date("daily_kline", date(2024, 1, 1))
+
+    with patch("src.pipeline.date") as mock_date:
+        mock_date.today.return_value = date(2024, 1, 2)
+        mock_date.side_effect = lambda *a, **kw: date(*a, **kw)
+        with pytest.raises(RuntimeError):
+            pipeline.sync_daily_kline()
+
+    pipeline._notifier.send.assert_called_once()
+    msg = pipeline._notifier.send.call_args[0][0]
+    assert "同步失败" in msg
+
+
+def test_pipeline_context_manager(cfg):
+    fetcher = MagicMock()
+    notifier = MagicMock()
+    with Pipeline(cfg, fetcher, notifier) as p:
+        assert p is not None

@@ -61,3 +61,13 @@ class Pipeline:
         msg = f"daily_kline 同步完成: 成功 {success} 天，跳过 {skipped} 天（非交易日）"
         logger.info(msg)
         self._notifier.send(msg)
+
+    def close(self) -> None:
+        self._meta.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+        return False
