@@ -3,7 +3,7 @@ from datetime import date
 import pandas as pd
 import pytest
 
-from src.storage import MetaStore, read_basic, read_daily_kline, write_basic, write_daily_kline
+from src.storage import MetaStore, read_basic, read_daily_kline, write_basic, write_daily_kline, write_trade_cal, read_trade_cal
 
 
 FULL_BASIC_COLUMNS = [
@@ -181,9 +181,6 @@ def test_read_basic_returns_empty_if_not_exists(tmp_path):
     assert result.empty
 
 
-from src.storage import write_trade_cal, read_trade_cal
-
-
 def test_write_and_read_trade_cal(tmp_path):
     df = pd.DataFrame({
         "exchange": ["SSE", "SSE"],
@@ -245,3 +242,27 @@ def test_get_trading_days_returns_empty_when_no_cal(tmp_path):
     with MetaStore(db_path) as store:
         days = store.get_trading_days("SSE", date(2024, 1, 1), date(2024, 1, 6))
     assert days == []
+
+
+def test_get_trading_days_exchange_isolation(tmp_path):
+    db_path = tmp_path / "meta.duckdb"
+    sse_df = pd.DataFrame({
+        "exchange": ["SSE"],
+        "cal_date": [date(2024, 1, 2)],
+        "is_open": [True],
+        "pretrade_date": [date(2023, 12, 29)],
+    })
+    szse_df = pd.DataFrame({
+        "exchange": ["SZSE"],
+        "cal_date": [date(2024, 1, 3)],
+        "is_open": [True],
+        "pretrade_date": [date(2024, 1, 2)],
+    })
+    write_trade_cal(tmp_path, "SSE", sse_df)
+    write_trade_cal(tmp_path, "SZSE", szse_df)
+    with MetaStore(db_path) as store:
+        store.load_trade_cal_from_parquet(tmp_path)
+        sse_days = store.get_trading_days("SSE", date(2024, 1, 1), date(2024, 1, 6))
+        szse_days = store.get_trading_days("SZSE", date(2024, 1, 1), date(2024, 1, 6))
+    assert sse_days == [date(2024, 1, 2)]
+    assert szse_days == [date(2024, 1, 3)]

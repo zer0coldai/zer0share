@@ -54,18 +54,26 @@ class MetaStore:
         return False
 
     def load_trade_cal_from_parquet(self, data_dir: Path) -> None:
-        self._conn.execute("DELETE FROM trade_cal")
         trade_cal_dir = data_dir / "trade_cal"
         if not trade_cal_dir.exists():
             return
-        for exchange_dir in sorted(trade_cal_dir.iterdir()):
-            parquet_path = exchange_dir / "data.parquet"
-            if not parquet_path.exists():
-                continue
-            self._conn.execute(
-                "INSERT INTO trade_cal SELECT * FROM read_parquet(?)",
-                [str(parquet_path)]
-            )
+        self._conn.execute("BEGIN")
+        try:
+            self._conn.execute("DELETE FROM trade_cal")
+            for exchange_dir in sorted(trade_cal_dir.iterdir()):
+                if not exchange_dir.is_dir():
+                    continue
+                parquet_path = exchange_dir / "data.parquet"
+                if not parquet_path.exists():
+                    continue
+                self._conn.execute(
+                    "INSERT INTO trade_cal SELECT * FROM read_parquet(?)",
+                    [str(parquet_path)]
+                )
+            self._conn.execute("COMMIT")
+        except Exception:
+            self._conn.execute("ROLLBACK")
+            raise
 
     def get_trading_days(
         self, exchange: str, start: date, end: date
@@ -126,4 +134,4 @@ def read_trade_cal(data_dir: Path, exchange: str) -> pd.DataFrame:
     path = data_dir / "trade_cal" / f"exchange={exchange}" / "data.parquet"
     if not path.exists():
         return pd.DataFrame()
-    return pq.ParquetFile(path).read().to_pandas()
+    return pq.read_table(path, schema=pq.read_schema(path)).to_pandas()
