@@ -33,11 +33,17 @@ def cli():
 
 
 @cli.command()
-@click.option("--table", type=click.Choice(["daily_kline", "basic"]), default=None)
+@click.option(
+    "--table",
+    type=click.Choice(["daily_kline", "basic", "trade_cal"]),
+    default=None,
+)
 @click.option("--all", "sync_all", is_flag=True, default=False)
 def sync(table: str | None, sync_all: bool) -> None:
     """增量同步数据"""
     with _make_pipeline() as pipeline:
+        if sync_all or table == "trade_cal":
+            pipeline.sync_trade_cal()
         if sync_all or table == "basic":
             pipeline.sync_basic()
         if sync_all or table == "daily_kline":
@@ -49,7 +55,7 @@ def status() -> None:
     """显示各表最后更新时间"""
     cfg = load_config(Path("config/settings.toml"))
     with MetaStore(cfg.db_path) as store:
-        for table in ["daily_kline", "basic"]:
+        for table in ["trade_cal", "daily_kline", "basic"]:
             last = store.get_last_date(table)
             click.echo(f"{table}: {last or '从未同步'}")
 
