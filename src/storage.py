@@ -37,10 +37,10 @@ class MetaStore:
                 updated_at = excluded.updated_at
         """, [table_name, last_date, datetime.now(timezone.utc)])
 
-    def __enter__(self):
+    def __enter__(self) -> "MetaStore":
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type, exc_val, exc_tb) -> bool:
         self.close()
         return False
 

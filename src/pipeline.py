@@ -65,9 +65,9 @@ class Pipeline:
     def close(self) -> None:
         self._meta.close()
 
-    def __enter__(self):
+    def __enter__(self) -> "Pipeline":
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type, exc_val, exc_tb) -> bool:
         self.close()
         return False

@@ -8,11 +8,20 @@ from src.notifier import Notifier
 from src.pipeline import Pipeline
 from src.storage import MetaStore
 
+_logger_initialized = False
+
+
+def _init_logger(log_path: Path) -> None:
+    global _logger_initialized
+    if not _logger_initialized:
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        logger.add(log_path, rotation="10 MB", retention="30 days")
+        _logger_initialized = True
+
 
 def _make_pipeline(config_path: str = "config/settings.toml") -> Pipeline:
     cfg = load_config(Path(config_path))
-    cfg.log_path.parent.mkdir(parents=True, exist_ok=True)
-    logger.add(cfg.log_path, rotation="10 MB", retention="30 days")
+    _init_logger(cfg.log_path)
     fetcher = TushareFetcher(cfg.tushare_token)
     notifier = Notifier(cfg.wecom_webhook_url, cfg.notifier_enabled)
     return Pipeline(cfg, fetcher, notifier)
@@ -38,7 +47,7 @@ def sync(table: str | None, sync_all: bool) -> None:
 @cli.command()
 def status() -> None:
     """显示各表最后更新时间"""
-    cfg = load_config()
+    cfg = load_config(Path("config/settings.toml"))
     with MetaStore(cfg.db_path) as store:
         for table in ["daily_kline", "basic"]:
             last = store.get_last_date(table)
