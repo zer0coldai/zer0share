@@ -15,7 +15,7 @@ from src.storage import (
 )
 
 
-FIRST_DATE = date(2010, 1, 4)
+FIRST_DATE = date(2016, 1, 1)
 EXCHANGES = ["SSE", "SZSE", "CFFEX", "SHFE", "CZCE", "DCE", "INE"]
 
 

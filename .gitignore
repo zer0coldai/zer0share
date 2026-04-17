@@ -23,4 +23,8 @@ __pycache__/
 .pytest_tmp/
 .pytest_tmp_run_*/
 
-# uv lock artifacts (keep uv.lock for reproducibility)
+# uv lock file
+uv.lock
+
+# Claude local config
+.claude/
