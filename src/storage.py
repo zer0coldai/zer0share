@@ -1,5 +1,5 @@
 import duckdb
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 
@@ -32,7 +32,14 @@ class MetaStore:
             ON CONFLICT (table_name) DO UPDATE SET
                 last_date = excluded.last_date,
                 updated_at = excluded.updated_at
-        """, [table_name, last_date, datetime.now()])
+        """, [table_name, last_date, datetime.now(timezone.utc)])
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+        return False
 
     def close(self):
         self._conn.close()
