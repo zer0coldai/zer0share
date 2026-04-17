@@ -3,7 +3,7 @@ from datetime import date
 import pandas as pd
 import pytest
 
-from src.storage import MetaStore, read_basic, read_daily_kline, write_basic, write_daily_kline, write_trade_cal, read_trade_cal
+from src.storage import MetaStore, daily_kline_partition_exists, read_basic, read_daily_kline, write_basic, write_daily_kline, write_trade_cal, read_trade_cal
 
 
 FULL_BASIC_COLUMNS = [
@@ -150,6 +150,29 @@ def test_daily_kline_partition_path(tmp_path):
     )
     write_daily_kline(tmp_path, date(2024, 1, 2), df)
     assert (tmp_path / "daily_kline" / "date=20240102" / "data.parquet").exists()
+
+
+def test_daily_kline_partition_exists(tmp_path):
+    assert daily_kline_partition_exists(tmp_path, date(2024, 1, 2)) is False
+
+    df = pd.DataFrame(
+        {
+            "ts_code": ["000001.SZ"],
+            "trade_date": [date(2024, 1, 2)],
+            "open": [10.0],
+            "high": [11.0],
+            "low": [9.5],
+            "close": [10.5],
+            "pre_close": [10.0],
+            "change": [0.5],
+            "pct_chg": [5.0],
+            "vol": [100000.0],
+            "amount": [1050000.0],
+        }
+    )
+    write_daily_kline(tmp_path, date(2024, 1, 2), df)
+
+    assert daily_kline_partition_exists(tmp_path, date(2024, 1, 2)) is True
 
 
 def test_write_and_read_basic(tmp_path):

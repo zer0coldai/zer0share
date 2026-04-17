@@ -258,3 +258,154 @@ def test_sync_daily_kline_raises_if_no_trade_cal(pipeline, cfg):
         mock_date.side_effect = lambda *a, **kw: date(*a, **kw)
         with pytest.raises(RuntimeError, match="trade_cal"):
             pipeline.sync_daily_kline()
+
+
+def test_sync_daily_kline_range_skips_existing_partitions(pipeline, cfg):
+    write_basic(cfg.data_dir, _basic_df())
+    trade_cal = pd.DataFrame(
+        {
+            "exchange": ["SSE", "SSE", "SSE"],
+            "cal_date": [date(2024, 1, 2), date(2024, 1, 3), date(2024, 1, 4)],
+            "is_open": [True, True, True],
+            "pretrade_date": [date(2023, 12, 29), date(2024, 1, 2), date(2024, 1, 3)],
+        }
+    )
+    write_trade_cal(cfg.data_dir, "SSE", trade_cal)
+    pipeline._meta.load_trade_cal_from_parquet(cfg.data_dir)
+
+    existing_df = pd.DataFrame(
+        {
+            "ts_code": ["000001.SZ"],
+            "trade_date": [date(2024, 1, 3)],
+            "open": [10.0],
+            "high": [11.0],
+            "low": [9.5],
+            "close": [10.5],
+            "pre_close": [10.0],
+            "change": [0.5],
+            "pct_chg": [5.0],
+            "vol": [100000.0],
+            "amount": [1050000.0],
+        }
+    )
+    from src.storage import write_daily_kline
+
+    write_daily_kline(cfg.data_dir, date(2024, 1, 3), existing_df)
+
+    pipeline._fetcher.fetch_daily_kline.side_effect = [
+        existing_df.assign(trade_date=[date(2024, 1, 2)]),
+        existing_df.assign(trade_date=[date(2024, 1, 4)]),
+    ]
+
+    pipeline.sync_daily_kline(start_date=date(2024, 1, 2), end_date=date(2024, 1, 4))
+
+    called_dates = [call.args[0] for call in pipeline._fetcher.fetch_daily_kline.call_args_list]
+    assert called_dates == [date(2024, 1, 2), date(2024, 1, 4)]
+
+
+def test_sync_daily_kline_old_range_does_not_rewind_meta(pipeline, cfg):
+    write_basic(cfg.data_dir, _basic_df())
+    trade_cal = pd.DataFrame(
+        {
+            "exchange": ["SSE", "SSE"],
+            "cal_date": [date(2024, 1, 2), date(2024, 1, 3)],
+            "is_open": [True, True],
+            "pretrade_date": [date(2023, 12, 29), date(2024, 1, 2)],
+        }
+    )
+    write_trade_cal(cfg.data_dir, "SSE", trade_cal)
+    pipeline._meta.load_trade_cal_from_parquet(cfg.data_dir)
+    pipeline._meta.update_last_date("daily_kline", date(2024, 2, 1))
+
+    kline_df = pd.DataFrame(
+        {
+            "ts_code": ["000001.SZ"],
+            "trade_date": [date(2024, 1, 2)],
+            "open": [10.0],
+            "high": [11.0],
+            "low": [9.5],
+            "close": [10.5],
+            "pre_close": [10.0],
+            "change": [0.5],
+            "pct_chg": [5.0],
+            "vol": [100000.0],
+            "amount": [1050000.0],
+        }
+    )
+    pipeline._fetcher.fetch_daily_kline.return_value = kline_df
+
+    pipeline.sync_daily_kline(start_date=date(2024, 1, 2), end_date=date(2024, 1, 3))
+
+    assert pipeline._meta.get_last_date("daily_kline") == date(2024, 2, 1)
+
+
+def test_sync_daily_kline_range_defaults_end_date_to_today(pipeline, cfg):
+    write_basic(cfg.data_dir, _basic_df())
+    trade_cal = pd.DataFrame(
+        {
+            "exchange": ["SSE", "SSE"],
+            "cal_date": [date(2024, 1, 2), date(2024, 1, 3)],
+            "is_open": [True, True],
+            "pretrade_date": [date(2023, 12, 29), date(2024, 1, 2)],
+        }
+    )
+    write_trade_cal(cfg.data_dir, "SSE", trade_cal)
+    pipeline._meta.load_trade_cal_from_parquet(cfg.data_dir)
+    pipeline._fetcher.fetch_daily_kline.return_value = pd.DataFrame(
+        {
+            "ts_code": ["000001.SZ"],
+            "trade_date": [date(2024, 1, 2)],
+            "open": [10.0],
+            "high": [11.0],
+            "low": [9.5],
+            "close": [10.5],
+            "pre_close": [10.0],
+            "change": [0.5],
+            "pct_chg": [5.0],
+            "vol": [100000.0],
+            "amount": [1050000.0],
+        }
+    )
+
+    with patch("src.pipeline.date") as mock_date:
+        mock_date.today.return_value = date(2024, 1, 3)
+        mock_date.side_effect = lambda *a, **kw: date(*a, **kw)
+        pipeline.sync_daily_kline(start_date=date(2024, 1, 2))
+
+    called_dates = [call.args[0] for call in pipeline._fetcher.fetch_daily_kline.call_args_list]
+    assert called_dates == [date(2024, 1, 2), date(2024, 1, 3)]
+
+
+def test_sync_daily_kline_sleeps_between_requests(pipeline, cfg):
+    write_basic(cfg.data_dir, _basic_df())
+    trade_cal = pd.DataFrame(
+        {
+            "exchange": ["SSE", "SSE"],
+            "cal_date": [date(2024, 1, 2), date(2024, 1, 3)],
+            "is_open": [True, True],
+            "pretrade_date": [date(2023, 12, 29), date(2024, 1, 2)],
+        }
+    )
+    write_trade_cal(cfg.data_dir, "SSE", trade_cal)
+    pipeline._meta.load_trade_cal_from_parquet(cfg.data_dir)
+    pipeline._fetcher.fetch_daily_kline.return_value = pd.DataFrame(
+        {
+            "ts_code": ["000001.SZ"],
+            "trade_date": [date(2024, 1, 2)],
+            "open": [10.0],
+            "high": [11.0],
+            "low": [9.5],
+            "close": [10.5],
+            "pre_close": [10.0],
+            "change": [0.5],
+            "pct_chg": [5.0],
+            "vol": [100000.0],
+            "amount": [1050000.0],
+        }
+    )
+
+    with patch("src.pipeline.time.sleep") as mock_sleep:
+        pipeline.sync_daily_kline(start_date=date(2024, 1, 2), end_date=date(2024, 1, 3))
+
+    assert mock_sleep.call_count == 2
+    mock_sleep.assert_any_call(0.2)

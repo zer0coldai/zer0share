@@ -102,6 +102,11 @@ def write_daily_kline(data_dir: Path, trade_date: date, df: pd.DataFrame) -> Non
     pq.write_table(table, partition_dir / "data.parquet")
 
 
+def daily_kline_partition_exists(data_dir: Path, trade_date: date) -> bool:
+    path = data_dir / "daily_kline" / f"date={trade_date.strftime('%Y%m%d')}" / "data.parquet"
+    return path.exists()
+
+
 def read_daily_kline(data_dir: Path, trade_date: date) -> pd.DataFrame:
     path = data_dir / "daily_kline" / f"date={trade_date.strftime('%Y%m%d')}" / "data.parquet"
     if not path.exists():
