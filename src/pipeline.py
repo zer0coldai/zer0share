@@ -4,9 +4,11 @@ from loguru import logger
 from src.config import Config
 from src.fetcher import TushareFetcher
 from src.notifier import Notifier
-from src.storage import MetaStore, write_basic, write_daily_kline
+from src.storage import MetaStore, write_basic, write_daily_kline, write_trade_cal
 
 FIRST_DATE = date(2010, 1, 4)
+
+EXCHANGES = ["SSE", "SZSE", "CFFEX", "SHFE", "CZCE", "DCE", "INE"]
 
 
 class Pipeline:
@@ -32,6 +34,20 @@ class Pipeline:
             self._notifier.send(f"basic 同步失败: {e}")
             raise
 
+    def sync_trade_cal(self) -> None:
+        try:
+            for exchange in EXCHANGES:
+                df = self._fetcher.fetch_trade_cal(exchange)
+                write_trade_cal(self._cfg.data_dir, exchange, df)
+                logger.info(f"trade_cal {exchange} 写入完成: {len(df)} 条")
+            self._meta.load_trade_cal_from_parquet(self._cfg.data_dir)
+            self._meta.update_last_date("trade_cal", date.today())
+            logger.info("trade_cal 全部同步完成")
+        except Exception as e:
+            logger.error(f"trade_cal 同步失败: {e}")
+            self._notifier.send(f"trade_cal 同步失败: {e}")
+            raise
+
     def sync_daily_kline(self) -> None:
         last = self._meta.get_last_date("daily_kline")
         start = (last + timedelta(days=1)) if last else FIRST_DATE
@@ -41,24 +57,31 @@ class Pipeline:
             logger.info("daily_kline 已是最新，无需同步")
             return
 
-        success, skipped = 0, 0
-        current = start
-        while current <= today:
+        trading_days = self._meta.get_trading_days("SSE", start, today)
+        if not trading_days and self._meta.get_last_date("trade_cal") is None:
+            raise RuntimeError(
+                "DuckDB 中无 SSE trade_cal 数据，请先运行: "
+                "python main.py sync --table trade_cal"
+            )
+
+        if not trading_days:
+            logger.info("指定范围内无交易日，无需同步")
+            return
+
+        success = 0
+        for trade_date in trading_days:
             try:
-                df = self._fetcher.fetch_daily_kline(current)
-                if df.empty:
-                    skipped += 1
-                else:
-                    write_daily_kline(self._cfg.data_dir, current, df)
-                    self._meta.update_last_date("daily_kline", current)
+                df = self._fetcher.fetch_daily_kline(trade_date)
+                if not df.empty:
+                    write_daily_kline(self._cfg.data_dir, trade_date, df)
+                    self._meta.update_last_date("daily_kline", trade_date)
                     success += 1
             except Exception as e:
-                logger.error(f"daily_kline {current} 同步失败: {e}")
-                self._notifier.send(f"daily_kline {current} 同步失败: {e}")
+                logger.error(f"daily_kline {trade_date} 同步失败: {e}")
+                self._notifier.send(f"daily_kline {trade_date} 同步失败: {e}")
                 raise
-            current += timedelta(days=1)
 
-        msg = f"daily_kline 同步完成: 成功 {success} 天，跳过 {skipped} 天（非交易日）"
+        msg = f"daily_kline 同步完成: 成功 {success} 天（共 {len(trading_days)} 个交易日）"
         logger.info(msg)
         self._notifier.send(msg)
 
