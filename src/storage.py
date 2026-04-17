@@ -20,6 +20,15 @@ class MetaStore:
                 updated_at  TIMESTAMP
             )
         """)
+        self._conn.execute("""
+            CREATE TABLE IF NOT EXISTS trade_cal (
+                exchange      VARCHAR,
+                cal_date      DATE,
+                is_open       BOOLEAN,
+                pretrade_date DATE,
+                PRIMARY KEY (exchange, cal_date)
+            )
+        """)
 
     def get_last_date(self, table_name: str) -> date | None:
         row = self._conn.execute(
@@ -43,6 +52,36 @@ class MetaStore:
     def __exit__(self, exc_type, exc_val, exc_tb) -> bool:
         self.close()
         return False
+
+    def load_trade_cal_from_parquet(self, data_dir: Path) -> None:
+        self._conn.execute("DELETE FROM trade_cal")
+        trade_cal_dir = data_dir / "trade_cal"
+        if not trade_cal_dir.exists():
+            return
+        for exchange_dir in sorted(trade_cal_dir.iterdir()):
+            parquet_path = exchange_dir / "data.parquet"
+            if not parquet_path.exists():
+                continue
+            self._conn.execute(
+                "INSERT INTO trade_cal SELECT * FROM read_parquet(?)",
+                [str(parquet_path)]
+            )
+
+    def get_trading_days(
+        self, exchange: str, start: date, end: date
+    ) -> list[date]:
+        rows = self._conn.execute(
+            """
+            SELECT cal_date FROM trade_cal
+            WHERE exchange = ?
+              AND cal_date >= ?
+              AND cal_date <= ?
+              AND is_open = TRUE
+            ORDER BY cal_date
+            """,
+            [exchange, start, end]
+        ).fetchall()
+        return [row[0] for row in rows]
 
     def close(self):
         self._conn.close()
@@ -74,3 +113,17 @@ def read_basic(data_dir: Path) -> pd.DataFrame:
     if not path.exists():
         return pd.DataFrame()
     return pq.read_table(path).to_pandas()
+
+
+def write_trade_cal(data_dir: Path, exchange: str, df: pd.DataFrame) -> None:
+    partition_dir = data_dir / "trade_cal" / f"exchange={exchange}"
+    partition_dir.mkdir(parents=True, exist_ok=True)
+    table = pa.Table.from_pandas(df, preserve_index=False)
+    pq.write_table(table, partition_dir / "data.parquet")
+
+
+def read_trade_cal(data_dir: Path, exchange: str) -> pd.DataFrame:
+    path = data_dir / "trade_cal" / f"exchange={exchange}" / "data.parquet"
+    if not path.exists():
+        return pd.DataFrame()
+    return pq.ParquetFile(path).read().to_pandas()

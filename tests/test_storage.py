@@ -179,3 +179,69 @@ def test_read_daily_kline_returns_empty_if_not_exists(tmp_path):
 def test_read_basic_returns_empty_if_not_exists(tmp_path):
     result = read_basic(tmp_path)
     assert result.empty
+
+
+from src.storage import write_trade_cal, read_trade_cal
+
+
+def test_write_and_read_trade_cal(tmp_path):
+    df = pd.DataFrame({
+        "exchange": ["SSE", "SSE"],
+        "cal_date": [date(2024, 1, 2), date(2024, 1, 3)],
+        "is_open": [True, False],
+        "pretrade_date": [date(2023, 12, 29), date(2024, 1, 2)],
+    })
+    write_trade_cal(tmp_path, "SSE", df)
+    result = read_trade_cal(tmp_path, "SSE")
+    assert len(result) == 2
+    assert (tmp_path / "trade_cal" / "exchange=SSE" / "data.parquet").exists()
+
+
+def test_read_trade_cal_returns_empty_if_not_exists(tmp_path):
+    result = read_trade_cal(tmp_path, "SSE")
+    assert result.empty
+
+
+def test_load_trade_cal_from_parquet(tmp_path):
+    db_path = tmp_path / "meta.duckdb"
+    df = pd.DataFrame({
+        "exchange": ["SSE", "SSE"],
+        "cal_date": [date(2024, 1, 2), date(2024, 1, 3)],
+        "is_open": [True, False],
+        "pretrade_date": [date(2023, 12, 29), date(2024, 1, 2)],
+    })
+    write_trade_cal(tmp_path, "SSE", df)
+    with MetaStore(db_path) as store:
+        store.load_trade_cal_from_parquet(tmp_path)
+        row = store._conn.execute(
+            "SELECT COUNT(*) FROM trade_cal WHERE exchange='SSE'"
+        ).fetchone()
+        assert row[0] == 2
+
+
+def test_get_trading_days(tmp_path):
+    db_path = tmp_path / "meta.duckdb"
+    df = pd.DataFrame({
+        "exchange": ["SSE"] * 5,
+        "cal_date": [
+            date(2024, 1, 2), date(2024, 1, 3), date(2024, 1, 4),
+            date(2024, 1, 5), date(2024, 1, 6),
+        ],
+        "is_open": [True, False, True, False, True],
+        "pretrade_date": [
+            date(2023, 12, 29), date(2024, 1, 2), date(2024, 1, 2),
+            date(2024, 1, 4), date(2024, 1, 4),
+        ],
+    })
+    write_trade_cal(tmp_path, "SSE", df)
+    with MetaStore(db_path) as store:
+        store.load_trade_cal_from_parquet(tmp_path)
+        days = store.get_trading_days("SSE", date(2024, 1, 1), date(2024, 1, 6))
+    assert days == [date(2024, 1, 2), date(2024, 1, 4), date(2024, 1, 6)]
+
+
+def test_get_trading_days_returns_empty_when_no_cal(tmp_path):
+    db_path = tmp_path / "meta.duckdb"
+    with MetaStore(db_path) as store:
+        days = store.get_trading_days("SSE", date(2024, 1, 1), date(2024, 1, 6))
+    assert days == []
