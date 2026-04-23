@@ -12,6 +12,8 @@ class Config:
     scheduler_daily_kline_hour: int
     scheduler_daily_kline_minute: int
     scheduler_basic_hour: int
+    scheduler_adj_factor_hour: int
+    scheduler_adj_factor_minute: int
     wecom_webhook_url: str
     notifier_enabled: bool
 
@@ -33,6 +35,8 @@ def load_config(path: Path = Path("config/settings.toml")) -> Config:
             scheduler_daily_kline_hour=raw["scheduler"]["daily_kline_hour"],
             scheduler_daily_kline_minute=raw["scheduler"]["daily_kline_minute"],
             scheduler_basic_hour=raw["scheduler"]["basic_hour"],
+            scheduler_adj_factor_hour=raw["scheduler"]["adj_factor_hour"],
+            scheduler_adj_factor_minute=raw["scheduler"]["adj_factor_minute"],
             wecom_webhook_url=raw["notifier"]["wecom_webhook_url"],
             notifier_enabled=raw["notifier"]["enabled"],
         )

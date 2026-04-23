@@ -43,9 +43,19 @@ def start_scheduler(config_path: str = "config/settings.toml") -> None:
             CronTrigger(hour=cfg.scheduler_basic_hour),
             id="basic",
         )
+        scheduler.add_job(
+            pipeline.sync_adj_factor,
+            CronTrigger(
+                hour=cfg.scheduler_adj_factor_hour,
+                minute=cfg.scheduler_adj_factor_minute,
+            ),
+            id="adj_factor",
+        )
         logger.info(
             f"调度器启动: daily_kline 每天 "
             f"{cfg.scheduler_daily_kline_hour}:{cfg.scheduler_daily_kline_minute:02d}, "
+            f"adj_factor 每天 "
+            f"{cfg.scheduler_adj_factor_hour}:{cfg.scheduler_adj_factor_minute:02d}, "
             f"basic 每天 {cfg.scheduler_basic_hour}:00"
         )
         scheduler.start()

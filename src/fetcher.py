@@ -28,6 +28,7 @@ DAILY_COLS = [
     "close", "pre_close", "change", "pct_chg", "vol", "amount"
 ]
 TRADE_CAL_COLS = ["exchange", "cal_date", "is_open", "pretrade_date"]
+ADJ_FACTOR_COLS = ["ts_code", "trade_date", "adj_factor"]
 
 
 class TushareFetcher:
@@ -59,6 +60,17 @@ class TushareFetcher:
             df["trade_date"], format="%Y%m%d"
         ).dt.date
         return df[DAILY_COLS]
+
+    def fetch_adj_factor(self, trade_date: date) -> pd.DataFrame:
+        date_str = trade_date.strftime("%Y%m%d")
+        logger.info(f"拉取复权因子: {date_str}")
+        df = self._pro.adj_factor(trade_date=date_str, fields=",".join(ADJ_FACTOR_COLS))
+        if df is None or df.empty:
+            return pd.DataFrame(columns=ADJ_FACTOR_COLS)
+        df["trade_date"] = pd.to_datetime(
+            df["trade_date"], format="%Y%m%d"
+        ).dt.date
+        return df[ADJ_FACTOR_COLS]
 
     def fetch_trade_cal(self, exchange: str) -> pd.DataFrame:
         today = date.today().strftime("%Y%m%d")
