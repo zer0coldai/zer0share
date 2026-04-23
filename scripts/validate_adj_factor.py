@@ -71,6 +71,11 @@ def fetch_tushare_adj(token: str, ts_code: str, start: str, end: str) -> pd.Data
 
 
 def compare(calc_df: pd.DataFrame, tushare_df: pd.DataFrame) -> pd.DataFrame:
+    calc_df = calc_df.copy()
+    tushare_df = tushare_df.copy()
+    # 统一为 YYYYMMDD 字符串，避免 date/str/Timestamp 类型不一致导致 merge 失败
+    calc_df["trade_date"] = calc_df["trade_date"].astype(str).str.replace("-", "")
+    tushare_df["trade_date"] = tushare_df["trade_date"].astype(str).str.replace("-", "")
     merged = calc_df.merge(tushare_df, on="trade_date", how="inner")
     if merged.empty:
         raise RuntimeError("无重叠日期，无法比较")
