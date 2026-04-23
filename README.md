@@ -7,6 +7,7 @@ A-股数据本地化管道，基于 [Tushare Pro](https://tushare.pro) 拉取股
 - **交易日历**：拉取 7 个交易所完整日历，增量同步自动跳过周末与节假日
 - **股票基础信息**：覆盖沪深北全市场，上市（L）/ 退市（D）/ 暂停上市（P）各状态
 - **日线行情**：按交易日分区存储，支持增量续传
+- **复权因子**：全市场前复权因子，按交易日分区，支持增量续传
 - **本地优先**：Parquet 分区文件 + DuckDB，无需数据库服务
 - **定时调度**：APScheduler 驱动，收盘后自动触发同步
 - **企业微信通知**：同步失败可推送告警（可选）
@@ -50,6 +51,7 @@ uv run python main.py sync --all
 uv run python main.py sync --table trade_cal   # 交易日历（必须最先）
 uv run python main.py sync --table basic       # 股票基础信息
 uv run python main.py sync --table daily_kline # 日线行情（依赖交易日历）
+uv run python main.py sync --table adj_factor  # 复权因子（依赖交易日历）
 ```
 
 ### 4. 查看同步状态
@@ -74,7 +76,11 @@ data/
 │   └── ...                          # CFFEX / SHFE / CZCE / DCE / INE
 ├── basic/
 │   └── data.parquet
-└── daily_kline/
+├── daily_kline/
+│   ├── date=20160104/data.parquet
+│   ├── date=20160105/data.parquet
+│   └── ...
+└── adj_factor/
     ├── date=20160104/data.parquet
     ├── date=20160105/data.parquet
     └── ...
@@ -89,6 +95,7 @@ db/
 | `sync --table trade_cal` | 同步交易日历（7 个交易所） |
 | `sync --table basic` | 同步股票基础信息 |
 | `sync --table daily_kline` | 增量同步日线行情 |
+| `sync --table adj_factor` | 增量同步复权因子 |
 | `sync --all` | 按顺序同步全部 |
 | `status` | 查看各表最后同步时间 |
 | `scheduler start` | 启动定时调度 |
@@ -108,6 +115,8 @@ log_path = "logs/pipeline.log"
 daily_kline_hour = 18      # 日线同步触发时间（小时）
 daily_kline_minute = 0
 basic_hour = 8             # 基础信息同步触发时间（小时）
+adj_factor_hour = 18       # 复权因子同步触发时间（小时）
+adj_factor_minute = 5
 
 [notifier]
 wecom_webhook_url = "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=YOUR_KEY"

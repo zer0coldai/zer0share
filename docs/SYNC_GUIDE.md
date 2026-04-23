@@ -31,6 +31,8 @@ log_path = "logs/pipeline.log"
 daily_kline_hour = 18
 daily_kline_minute = 0
 basic_hour = 8
+adj_factor_hour = 18
+adj_factor_minute = 5
 
 [notifier]
 wecom_webhook_url = "https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=YOUR_KEY"
@@ -81,11 +83,24 @@ uv run python main.py sync --table daily_kline
 
 > **注意**：首次同步历史数据量较大（约 10 年 × 3800 只股票），耗时可能在 1～2 小时，受 Tushare 每分钟调用频次限制影响。
 
+### 步骤四：同步复权因子
+
+```bash
+uv run python main.py sync --table adj_factor
+```
+
+此命令会：
+- 以 SSE 交易日历为基准，拉取每个交易日全市场的前复权因子
+- 从 2016-01-01 起增量同步到今天
+- 每个交易日写入 `data/adj_factor/date=YYYYMMDD/data.parquet`
+
+字段：`ts_code`（股票代码）、`trade_date`（交易日）、`adj_factor`（复权因子值）。
+
 ---
 
 ## 一键同步全部
 
-以上三步可合并为一条命令，顺序固定为 trade_cal → basic → daily_kline：
+以上四步可合并为一条命令，顺序固定为 trade_cal → basic → daily_kline → adj_factor：
 
 ```bash
 uv run python main.py sync --all
@@ -105,6 +120,7 @@ uv run python main.py status
 trade_cal    last sync: 2026-04-17
 basic        last sync: 2026-04-17
 daily_kline  last sync: 2026-04-17
+adj_factor   last sync: 2026-04-17
 ```
 
 ---
@@ -114,7 +130,7 @@ daily_kline  last sync: 2026-04-17
 再次运行任意 `sync` 命令时，pipeline 会自动从上次同步的日期之后继续拉取，无需重新全量同步。
 
 ```bash
-# 每日收盘后更新日线行情
+# 每个交易日收盘后更新日线行情
 uv run python main.py sync --table daily_kline
 ```
 
@@ -130,10 +146,11 @@ uv run python main.py scheduler start
 
 默认调度时间（可在 `settings.toml` 修改）：
 
-| 任务 | 时间 |
-|------|------|
-| daily_kline | 每个工作日 18:00 |
-| basic | 每个工作日 08:00 |
+| 任务 | 触发时间 | 说明 |
+|------|----------|------|
+| daily_kline | 每天 18:00 | 仅交易日写入数据，非交易日自动跳过 |
+| adj_factor | 每天 18:05 | 仅交易日写入数据，非交易日自动跳过 |
+| basic | 每天 08:00 | 每日全量刷新 |
 
 > 调度器需保持进程运行。生产环境建议配合 `systemd` 或 `supervisor` 管理进程。
 
@@ -155,7 +172,11 @@ data/
 │   └── exchange=INE/data.parquet
 ├── basic/
 │   └── data.parquet
-└── daily_kline/
+├── daily_kline/
+│   ├── date=20160104/data.parquet
+│   ├── date=20160105/data.parquet
+│   └── ...
+└── adj_factor/
     ├── date=20160104/data.parquet
     ├── date=20160105/data.parquet
     └── ...
