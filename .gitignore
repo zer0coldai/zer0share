@@ -23,6 +23,9 @@ __pycache__/
 .pytest_tmp/
 .pytest_tmp_run_*/
 
+# Local git worktrees
+.worktrees/
+
 # uv lock file
 uv.lock
 
