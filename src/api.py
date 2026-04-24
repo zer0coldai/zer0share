@@ -133,12 +133,76 @@ class LocalPro:
             fields=fields,
         )
 
+    def pro_bar(
+        self,
+        ts_code: str,
+        start_date: str | None = None,
+        end_date: str | None = None,
+        asset: str = "E",
+        adj: str | None = None,
+        freq: str = "D",
+        trade_date: str | None = None,
+        ma: list[int] | None = None,
+    ) -> pd.DataFrame:
+        if asset != "E":
+            raise NotImplementedError("local pro_bar currently only supports asset='E'")
+        if freq != "D":
+            raise NotImplementedError("local pro_bar currently only supports freq='D'")
+        if ma:
+            raise NotImplementedError("local pro_bar does not support ma yet")
+        if adj not in (None, "qfq", "hfq"):
+            raise ValueError("adj must be one of None, 'qfq', or 'hfq'")
+
+        daily = self.daily(
+            ts_code=ts_code,
+            trade_date=trade_date,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        if adj is None or daily.empty:
+            return daily
+
+        factors = self.adj_factor(
+            ts_code=ts_code,
+            trade_date=trade_date,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        if factors.empty:
+            return daily.iloc[0:0].copy()
+
+        result = daily.merge(
+            factors[["ts_code", "trade_date", "adj_factor"]],
+            on=["ts_code", "trade_date"],
+            how="left",
+        ).sort_values(["ts_code", "trade_date"])
+        result["adj_factor"] = result.groupby("ts_code")["adj_factor"].bfill()
+        result = result.dropna(subset=["adj_factor"])
+        if result.empty:
+            return daily.iloc[0:0].copy()
+
+        price_columns = ["open", "high", "low", "close", "pre_close"]
+        if adj == "qfq":
+            base_factor = result.sort_values("trade_date").iloc[-1]["adj_factor"]
+            multiplier = result["adj_factor"] / base_factor
+        else:
+            multiplier = result["adj_factor"]
+
+        for column in price_columns:
+            result[column] = (result[column] * multiplier).round(2)
+
+        result["change"] = (result["close"] - result["pre_close"]).round(2)
+        result["pct_chg"] = (result["change"] / result["pre_close"] * 100).round(2)
+
+        return result.drop(columns=["adj_factor"])
+
     def query(self, api_name: str, **kwargs) -> pd.DataFrame:
         dispatch = {
             "stock_basic": self.stock_basic,
             "trade_cal": self.trade_cal,
             "daily": self.daily,
             "adj_factor": self.adj_factor,
+            "pro_bar": self.pro_bar,
         }
         try:
             method = dispatch[api_name]

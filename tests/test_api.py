@@ -294,3 +294,193 @@ def test_trade_cal_invalid_date_range_raises_value_error(tmp_path):
 
     with pytest.raises(ValueError, match="start_date"):
         pro.trade_cal(start_date="20240103", end_date="20240102")
+
+
+def test_pro_bar_returns_qfq_prices_using_end_date_factor(tmp_path):
+    write_daily_kline(
+        tmp_path,
+        date(2024, 1, 2),
+        pd.DataFrame(
+            {
+                "ts_code": ["000001.SZ"],
+                "trade_date": [date(2024, 1, 2)],
+                "open": [10.0],
+                "high": [12.0],
+                "low": [9.0],
+                "close": [11.0],
+                "pre_close": [10.0],
+                "change": [1.0],
+                "pct_chg": [10.0],
+                "vol": [1000.0],
+                "amount": [11000.0],
+            }
+        ),
+    )
+    write_daily_kline(
+        tmp_path,
+        date(2024, 1, 3),
+        pd.DataFrame(
+            {
+                "ts_code": ["000001.SZ"],
+                "trade_date": [date(2024, 1, 3)],
+                "open": [20.0],
+                "high": [22.0],
+                "low": [19.0],
+                "close": [21.0],
+                "pre_close": [11.0],
+                "change": [10.0],
+                "pct_chg": [90.91],
+                "vol": [2000.0],
+                "amount": [42000.0],
+            }
+        ),
+    )
+    write_adj_factor(
+        tmp_path,
+        date(2024, 1, 2),
+        pd.DataFrame(
+            {
+                "ts_code": ["000001.SZ"],
+                "trade_date": [date(2024, 1, 2)],
+                "adj_factor": [2.0],
+            }
+        ),
+    )
+    write_adj_factor(
+        tmp_path,
+        date(2024, 1, 3),
+        pd.DataFrame(
+            {
+                "ts_code": ["000001.SZ"],
+                "trade_date": [date(2024, 1, 3)],
+                "adj_factor": [4.0],
+            }
+        ),
+    )
+
+    pro = LocalPro(tmp_path)
+    result = pro.pro_bar(
+        ts_code="000001.SZ",
+        start_date="20240102",
+        end_date="20240103",
+        adj="qfq",
+    )
+
+    assert result[
+        ["ts_code", "trade_date", "open", "high", "low", "close", "pre_close", "change", "pct_chg", "vol"]
+    ].to_dict(
+        "records"
+    ) == [
+        {
+            "ts_code": "000001.SZ",
+            "trade_date": "20240102",
+            "open": 5.0,
+            "high": 6.0,
+            "low": 4.5,
+            "close": 5.5,
+            "pre_close": 5.0,
+            "change": 0.5,
+            "pct_chg": 10.0,
+            "vol": 1000.0,
+        },
+        {
+            "ts_code": "000001.SZ",
+            "trade_date": "20240103",
+            "open": 20.0,
+            "high": 22.0,
+            "low": 19.0,
+            "close": 21.0,
+            "pre_close": 11.0,
+            "change": 10.0,
+            "pct_chg": 90.91,
+            "vol": 2000.0,
+        },
+    ]
+
+
+def test_pro_bar_returns_hfq_prices(tmp_path):
+    write_daily_kline(
+        tmp_path,
+        date(2024, 1, 2),
+        pd.DataFrame(
+            {
+                "ts_code": ["000001.SZ"],
+                "trade_date": [date(2024, 1, 2)],
+                "open": [10.0],
+                "high": [12.0],
+                "low": [9.0],
+                "close": [11.0],
+                "pre_close": [10.0],
+                "change": [1.0],
+                "pct_chg": [10.0],
+                "vol": [1000.0],
+                "amount": [11000.0],
+            }
+        ),
+    )
+    write_adj_factor(
+        tmp_path,
+        date(2024, 1, 2),
+        pd.DataFrame(
+            {
+                "ts_code": ["000001.SZ"],
+                "trade_date": [date(2024, 1, 2)],
+                "adj_factor": [2.0],
+            }
+        ),
+    )
+
+    pro = LocalPro(tmp_path)
+    result = pro.pro_bar(ts_code="000001.SZ", trade_date="20240102", adj="hfq")
+
+    assert result[["open", "high", "low", "close", "pre_close"]].to_dict("records") == [
+        {"open": 20.0, "high": 24.0, "low": 18.0, "close": 22.0, "pre_close": 20.0}
+    ]
+
+
+def test_pro_bar_rounds_adjusted_prices_to_two_decimals(tmp_path):
+    write_daily_kline(
+        tmp_path,
+        date(2024, 1, 2),
+        pd.DataFrame(
+            {
+                "ts_code": ["000001.SZ"],
+                "trade_date": [date(2024, 1, 2)],
+                "open": [10.0],
+                "high": [10.0],
+                "low": [10.0],
+                "close": [10.0],
+                "pre_close": [10.0],
+                "change": [0.0],
+                "pct_chg": [0.0],
+                "vol": [1000.0],
+                "amount": [10000.0],
+            }
+        ),
+    )
+    write_adj_factor(
+        tmp_path,
+        date(2024, 1, 2),
+        pd.DataFrame(
+            {
+                "ts_code": ["000001.SZ"],
+                "trade_date": [date(2024, 1, 2)],
+                "adj_factor": [1.234],
+            }
+        ),
+    )
+
+    pro = LocalPro(tmp_path)
+    result = pro.pro_bar(ts_code="000001.SZ", trade_date="20240102", adj="hfq")
+
+    assert result.iloc[0]["close"] == 12.34
+
+
+def test_pro_bar_rejects_unsupported_asset_and_freq(tmp_path):
+    pro = LocalPro(tmp_path)
+
+    with pytest.raises(NotImplementedError, match="asset='E'"):
+        pro.pro_bar(ts_code="000001.SZ", asset="I")
+
+    with pytest.raises(NotImplementedError, match="freq='D'"):
+        pro.pro_bar(ts_code="000001.SZ", freq="W")
