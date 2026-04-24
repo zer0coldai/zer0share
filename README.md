@@ -74,6 +74,45 @@ uv run python main.py status
 uv run python main.py scheduler start
 ```
 
+## 本地查询 API
+
+同步完成后，可以在研究代码中使用类似 Tushare Pro 的本地 Python API 查询数据。查询只读取本地 Parquet 文件，通过 DuckDB 执行，不会访问 Tushare，也不会消耗积分。
+
+```python
+from src import pro_api
+
+pro = pro_api()
+
+basic = pro.stock_basic(list_status="L")
+cal = pro.trade_cal(exchange="SSE", start_date="20240101", end_date="20240131")
+daily = pro.daily(ts_code="000001.SZ", start_date="20240101", end_date="20240331")
+adj = pro.adj_factor(ts_code="000001.SZ", start_date="20240101", end_date="20240331")
+
+qfq = pro.pro_bar(
+    ts_code="000001.SZ",
+    start_date="20240101",
+    end_date="20240331",
+    adj="qfq",
+)
+```
+
+支持的本地查询方法：
+
+| 方法 | 说明 |
+|------|------|
+| `stock_basic` | 查询已同步的股票基础信息 |
+| `trade_cal` | 查询已同步的交易日历 |
+| `daily` | 查询已同步的 A 股日线行情 |
+| `adj_factor` | 查询已同步的复权因子 |
+| `pro_bar` | 查询本地 A 股日线行情，支持不复权、前复权（qfq）和后复权（hfq） |
+| `query` | 按接口名分发，例如 `pro.query("daily", ...)` |
+
+运行示例：
+
+```bash
+uv run python examples/local_query_api_smoke.py
+```
+
 ## 数据存储结构
 
 ```
@@ -149,6 +188,7 @@ uv run pytest tests/test_pipeline.py -v
 ```
 src/
 ├── config.py     # 配置加载
+├── api.py        # 本地 Tushare-like 查询 API
 ├── fetcher.py    # Tushare API 封装
 ├── storage.py    # Parquet 读写 + DuckDB MetaStore
 ├── pipeline.py   # 同步业务逻辑
@@ -156,6 +196,7 @@ src/
 ├── notifier.py   # 企业微信 Webhook 通知
 └── cli.py        # Click CLI 入口
 tests/            # pytest 测试套件
+examples/         # 本地查询 API 示例
 config/
 └── settings.example.toml
 ```
