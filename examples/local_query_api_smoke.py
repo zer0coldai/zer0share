@@ -55,13 +55,29 @@ def run_examples(ts_code: str, start_date: str, end_date: str, trade_date: str) 
     )
     _print_frame("adj_factor", adj_factor)
 
+    qfq = pro.pro_bar(
+        ts_code=ts_code,
+        start_date=start_date,
+        end_date=end_date,
+        adj="qfq",
+    )
+    _print_frame("pro_bar_qfq", qfq)
+
+    hfq = pro.pro_bar(
+        ts_code=ts_code,
+        start_date=start_date,
+        end_date=end_date,
+        adj="hfq",
+    )
+    _print_frame("pro_bar_hfq", hfq)
+
     by_query = pro.query(
-        "daily",
+        "pro_bar",
         ts_code=ts_code,
         trade_date=trade_date,
-        fields="ts_code,trade_date,close",
+        adj="qfq",
     )
-    _print_frame("query_daily_by_trade_date", by_query)
+    _print_frame("query_pro_bar_qfq_by_trade_date", by_query)
 
 
 def parse_args() -> argparse.Namespace:

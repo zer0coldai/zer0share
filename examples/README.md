@@ -18,6 +18,7 @@ The example calls the local Tushare-like API:
 - `pro.trade_cal`
 - `pro.daily`
 - `pro.adj_factor`
+- `pro.pro_bar`
 - `pro.query`
 
 It reads local Parquet data only. It does not call Tushare.
