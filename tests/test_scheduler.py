@@ -14,6 +14,8 @@ log_path = "logs/pipeline.log"
 daily_kline_hour = 18
 daily_kline_minute = 0
 basic_hour = 8
+adj_factor_hour = 18
+adj_factor_minute = 5
 
 [notifier]
 wecom_webhook_url = "https://example.com"
@@ -45,8 +47,8 @@ def test_start_scheduler_registers_two_jobs(tmp_path):
 
         start_scheduler(str(cfg_file))
 
-    assert set(registered_jobs) == {"daily_kline", "basic"}
-    assert len(registered_jobs) == 2
+    assert set(registered_jobs) == {"daily_kline", "basic", "adj_factor"}
+    assert len(registered_jobs) == 3
 
 
 def test_start_scheduler_registers_basic_job_as_daily(tmp_path):
@@ -74,3 +76,4 @@ def test_start_scheduler_registers_basic_job_as_daily(tmp_path):
 
     assert cron_calls[0] == {"hour": 18, "minute": 0}
     assert cron_calls[1] == {"hour": 8}
+    assert cron_calls[2] == {"hour": 18, "minute": 5}

@@ -18,6 +18,8 @@ log_path = "logs/pipeline.log"
 daily_kline_hour = 18
 daily_kline_minute = 0
 basic_hour = 8
+adj_factor_hour = 18
+adj_factor_minute = 5
 
 [notifier]
 wecom_webhook_url = "https://example.com/webhook"
@@ -38,6 +40,8 @@ def test_load_config_returns_all_fields(tmp_path):
     assert cfg.scheduler_daily_kline_hour == 18
     assert cfg.scheduler_daily_kline_minute == 0
     assert cfg.scheduler_basic_hour == 8
+    assert cfg.scheduler_adj_factor_hour == 18
+    assert cfg.scheduler_adj_factor_minute == 5
     assert cfg.wecom_webhook_url == "https://example.com/webhook"
     assert cfg.notifier_enabled is False
 
