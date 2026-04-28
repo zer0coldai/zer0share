@@ -3,8 +3,8 @@ from datetime import date
 import pandas as pd
 import pytest
 
-from src.api import LocalPro
-from src.storage import write_adj_factor, write_basic, write_daily_kline, write_trade_cal
+from zer0share.api import LocalPro
+from zer0share.storage import write_adj_factor, write_basic, write_daily_kline, write_trade_cal
 
 
 def test_stock_basic_filters_and_formats_dates(tmp_path):

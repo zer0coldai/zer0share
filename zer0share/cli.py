@@ -4,11 +4,11 @@ from pathlib import Path
 import click
 from loguru import logger
 
-from src.config import load_config
-from src.fetcher import TushareFetcher
-from src.notifier import Notifier
-from src.pipeline import Pipeline
-from src.storage import MetaStore
+from zer0share.config import load_config
+from zer0share.fetcher import TushareFetcher
+from zer0share.notifier import Notifier
+from zer0share.pipeline import Pipeline
+from zer0share.storage import MetaStore
 
 
 _logger_initialized = False
@@ -96,6 +96,6 @@ def status() -> None:
 @click.argument("action", type=click.Choice(["start"]))
 def scheduler_cmd(action: str) -> None:
     """启动定时调度。"""
-    from src.scheduler import start_scheduler
+    from zer0share.scheduler import start_scheduler
 
     start_scheduler()

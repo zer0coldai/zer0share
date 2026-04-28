@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from src.config import load_config
+from zer0share.config import load_config
 
 
 VALID_TOML = """

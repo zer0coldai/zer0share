@@ -3,10 +3,10 @@ import time
 
 from loguru import logger
 
-from src.config import Config
-from src.fetcher import TushareFetcher
-from src.notifier import Notifier
-from src.storage import (
+from zer0share.config import Config
+from zer0share.fetcher import TushareFetcher
+from zer0share.notifier import Notifier
+from zer0share.storage import (
     MetaStore,
     adj_factor_partition_exists,
     daily_kline_partition_exists,

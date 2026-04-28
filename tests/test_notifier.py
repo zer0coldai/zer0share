@@ -1,7 +1,7 @@
 import pytest
 import httpx
 from unittest.mock import patch, MagicMock
-from src.notifier import Notifier
+from zer0share.notifier import Notifier
 
 
 def test_send_disabled_does_not_call_http():

@@ -4,8 +4,8 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
-from src.pipeline import Pipeline, EXCHANGES
-from src.storage import write_basic, write_trade_cal
+from zer0share.pipeline import Pipeline, EXCHANGES
+from zer0share.storage import write_basic, write_trade_cal
 
 
 def _basic_df() -> pd.DataFrame:
@@ -95,7 +95,7 @@ def test_sync_daily_kline_writes_parquet(pipeline, cfg):
     pipeline._fetcher.fetch_daily_kline.return_value = kline_df
     pipeline._meta.update_last_date("daily_kline", date(2024, 1, 1))
 
-    with patch("src.pipeline.date") as mock_date:
+    with patch("zer0share.pipeline.date") as mock_date:
         mock_date.today.return_value = date(2024, 1, 2)
         mock_date.side_effect = lambda *a, **kw: date(*a, **kw)
         pipeline.sync_daily_kline()
@@ -109,7 +109,7 @@ def test_sync_daily_kline_skips_empty_dates(pipeline, cfg):
     pipeline._fetcher.fetch_daily_kline.return_value = pd.DataFrame()
     pipeline._meta.update_last_date("daily_kline", date(2024, 1, 1))
 
-    with patch("src.pipeline.date") as mock_date:
+    with patch("zer0share.pipeline.date") as mock_date:
         mock_date.today.return_value = date(2024, 1, 2)
         mock_date.side_effect = lambda *a, **kw: date(*a, **kw)
         pipeline.sync_daily_kline()
@@ -138,7 +138,7 @@ def test_sync_daily_kline_sends_completion_notification(pipeline, cfg):
     pipeline._fetcher.fetch_daily_kline.return_value = kline_df
     pipeline._meta.update_last_date("daily_kline", date(2024, 1, 1))
 
-    with patch("src.pipeline.date") as mock_date:
+    with patch("zer0share.pipeline.date") as mock_date:
         mock_date.today.return_value = date(2024, 1, 2)
         mock_date.side_effect = lambda *a, **kw: date(*a, **kw)
         pipeline.sync_daily_kline()
@@ -171,7 +171,7 @@ def test_sync_daily_kline_failure_sends_alert_and_raises(pipeline, cfg):
     pipeline._fetcher.fetch_daily_kline.side_effect = RuntimeError("API error")
     pipeline._meta.update_last_date("daily_kline", date(2024, 1, 1))
 
-    with patch("src.pipeline.date") as mock_date:
+    with patch("zer0share.pipeline.date") as mock_date:
         mock_date.today.return_value = date(2024, 1, 2)
         mock_date.side_effect = lambda *a, **kw: date(*a, **kw)
         with pytest.raises(RuntimeError):
@@ -242,7 +242,7 @@ def test_sync_daily_kline_uses_trading_calendar(pipeline, cfg):
     pipeline._fetcher.fetch_daily_kline.return_value = kline_df
     pipeline._meta.update_last_date("daily_kline", date(2024, 1, 1))
 
-    with patch("src.pipeline.date") as mock_date:
+    with patch("zer0share.pipeline.date") as mock_date:
         mock_date.today.return_value = date(2024, 1, 4)
         mock_date.side_effect = lambda *a, **kw: date(*a, **kw)
         pipeline.sync_daily_kline()
@@ -253,7 +253,7 @@ def test_sync_daily_kline_uses_trading_calendar(pipeline, cfg):
 
 def test_sync_daily_kline_raises_if_no_trade_cal(pipeline, cfg):
     pipeline._meta.update_last_date("daily_kline", date(2024, 1, 1))
-    with patch("src.pipeline.date") as mock_date:
+    with patch("zer0share.pipeline.date") as mock_date:
         mock_date.today.return_value = date(2024, 1, 4)
         mock_date.side_effect = lambda *a, **kw: date(*a, **kw)
         with pytest.raises(RuntimeError, match="trade_cal"):
@@ -288,7 +288,7 @@ def test_sync_daily_kline_range_skips_existing_partitions(pipeline, cfg):
             "amount": [1050000.0],
         }
     )
-    from src.storage import write_daily_kline
+    from zer0share.storage import write_daily_kline
 
     write_daily_kline(cfg.data_dir, date(2024, 1, 3), existing_df)
 
@@ -367,7 +367,7 @@ def test_sync_daily_kline_range_defaults_end_date_to_today(pipeline, cfg):
         }
     )
 
-    with patch("src.pipeline.date") as mock_date:
+    with patch("zer0share.pipeline.date") as mock_date:
         mock_date.today.return_value = date(2024, 1, 3)
         mock_date.side_effect = lambda *a, **kw: date(*a, **kw)
         pipeline.sync_daily_kline(start_date=date(2024, 1, 2))
@@ -404,7 +404,7 @@ def test_sync_daily_kline_sleeps_between_requests(pipeline, cfg):
         }
     )
 
-    with patch("src.pipeline.time.sleep") as mock_sleep:
+    with patch("zer0share.pipeline.time.sleep") as mock_sleep:
         pipeline.sync_daily_kline(start_date=date(2024, 1, 2), end_date=date(2024, 1, 3))
 
     assert mock_sleep.call_count == 2

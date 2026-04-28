@@ -3,7 +3,7 @@ from datetime import date
 import pandas as pd
 import pytest
 
-from src.storage import MetaStore, daily_kline_partition_exists, read_basic, read_daily_kline, write_basic, write_daily_kline, write_trade_cal, read_trade_cal
+from zer0share.storage import MetaStore, daily_kline_partition_exists, read_basic, read_daily_kline, write_basic, write_daily_kline, write_trade_cal, read_trade_cal
 
 
 FULL_BASIC_COLUMNS = [

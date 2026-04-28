@@ -4,10 +4,10 @@ from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
 from loguru import logger
 
-from src.config import load_config
-from src.fetcher import TushareFetcher
-from src.notifier import Notifier
-from src.pipeline import Pipeline
+from zer0share.config import load_config
+from zer0share.fetcher import TushareFetcher
+from zer0share.notifier import Notifier
+from zer0share.pipeline import Pipeline
 
 
 _logger_initialized = False

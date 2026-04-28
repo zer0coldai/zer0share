@@ -3,7 +3,7 @@ import pytest
 from datetime import date
 from unittest.mock import patch
 
-from src.fetcher import TushareFetcher
+from zer0share.fetcher import TushareFetcher
 
 
 BASIC_COLS = [

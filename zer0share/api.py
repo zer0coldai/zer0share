@@ -4,8 +4,8 @@ from pathlib import Path
 import duckdb
 import pandas as pd
 
-from src.config import load_config
-from src.fetcher import ADJ_FACTOR_COLS, BASIC_COLS, DAILY_COLS, TRADE_CAL_COLS
+from zer0share.config import load_config
+from zer0share.fetcher import ADJ_FACTOR_COLS, BASIC_COLS, DAILY_COLS, TRADE_CAL_COLS
 
 
 class LocalPro:

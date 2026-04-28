@@ -39,11 +39,11 @@ def test_start_scheduler_registers_two_jobs(tmp_path):
             "apscheduler.schedulers.blocking.BlockingScheduler.add_job",
             side_effect=fake_add_job,
         ),
-        patch("src.scheduler.Pipeline") as mock_pipeline_cls,
+        patch("zer0share.scheduler.Pipeline") as mock_pipeline_cls,
     ):
         mock_pipeline_cls.return_value.__enter__ = lambda s: s
         mock_pipeline_cls.return_value.__exit__ = MagicMock(return_value=False)
-        from src.scheduler import start_scheduler
+        from zer0share.scheduler import start_scheduler
 
         start_scheduler(str(cfg_file))
 
@@ -63,14 +63,14 @@ def test_start_scheduler_registers_basic_job_as_daily(tmp_path):
 
     with (
         patch("tushare.pro_api"),
-        patch("src.scheduler.CronTrigger", side_effect=fake_cron_trigger),
+        patch("zer0share.scheduler.CronTrigger", side_effect=fake_cron_trigger),
         patch("apscheduler.schedulers.blocking.BlockingScheduler.start"),
         patch("apscheduler.schedulers.blocking.BlockingScheduler.add_job"),
-        patch("src.scheduler.Pipeline") as mock_pipeline_cls,
+        patch("zer0share.scheduler.Pipeline") as mock_pipeline_cls,
     ):
         mock_pipeline_cls.return_value.__enter__ = lambda s: s
         mock_pipeline_cls.return_value.__exit__ = MagicMock(return_value=False)
-        from src.scheduler import start_scheduler
+        from zer0share.scheduler import start_scheduler
 
         start_scheduler(str(cfg_file))
 

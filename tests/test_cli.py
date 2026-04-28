@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 
 from click.testing import CliRunner
 
-from src.cli import cli
+from zer0share.cli import cli
 
 
 def test_sync_daily_kline_accepts_date_range():
@@ -12,7 +12,7 @@ def test_sync_daily_kline_accepts_date_range():
     pipeline.__enter__.return_value = pipeline
     pipeline.__exit__.return_value = False
 
-    with patch("src.cli._make_pipeline", return_value=pipeline):
+    with patch("zer0share.cli._make_pipeline", return_value=pipeline):
         result = runner.invoke(
             cli,
             [

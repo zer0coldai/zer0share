@@ -1,15 +1,9 @@
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
 import sys
 
-
-ROOT = Path(__file__).resolve().parents[1]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
-
-from src import pro_api  # noqa: E402
+from zer0share import pro_api
 
 
 def _print_frame(title, df, rows: int = 5) -> None:
